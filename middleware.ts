@@ -1,76 +1,118 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  // Skip middleware if environment variables are not properly configured
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.next()
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return NextResponse.next();
   }
 
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  const response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+        getAll: () => request.cookies.getAll(),
+        setAll: (cookies) => {
+          cookies.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
         },
       },
-    }
-  )
+    },
+  );
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
+  // 🔑 Always fetch user first
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    return NextResponse.redirect(url)
+  const pathname = request.nextUrl.pathname;
+
+  /* ---------------- PUBLIC ROUTES ---------------- */
+  const publicRoutes = ["/", "/auth/loginAdmin", "/auth/loginWorker"];
+
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname.startsWith(route),
+  );
+
+  /* ---------------- NOT LOGGED IN ---------------- */
+  if (!user && !isPublicRoute) {
+    const url = request.nextUrl.clone();
+
+    // 🔥 FIX: send worker → worker login, manager → admin login
+    if (pathname.startsWith("/construction-worker")) {
+      url.pathname = "/auth/loginWorker";
+    } else {
+      url.pathname = "/auth/loginAdmin";
+    }
+
+    return NextResponse.redirect(url);
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object instead of the supabaseResponse object
+  /* ---------------- FETCH ROLE ---------------- */
+  let role: string | null = null;
 
-  return supabaseResponse
+  if (user) {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.error("[Middleware] Role fetch error:", error.message);
+    }
+    role = data?.role ?? null;
+  }
+
+  /* ---------------- LOGGED IN ON LOGIN PAGE ---------------- */
+  if (
+    user &&
+    (pathname.startsWith("/auth/loginAdmin") ||
+      pathname.startsWith("/auth/loginWorker"))
+  ) {
+    const url = request.nextUrl.clone();
+
+    if (role === "manager") {
+      url.pathname = "/manager/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    if (role === "worker") {
+      url.pathname = "/construction-worker";
+      return NextResponse.redirect(url);
+    }
+
+    return response;
+  }
+
+  /* ---------------- MANAGER ROUTE PROTECTION ---------------- */
+  if (pathname.startsWith("/manager")) {
+    if (role !== "manager") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/loginAdmin";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  /* ---------------- WORKER ROUTE PROTECTION ---------------- */
+  if (pathname.startsWith("/construction-worker")) {
+    if (role !== "worker") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/loginWorker";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  return response;
 }
 
+/* ---------------- MATCHER ---------------- */
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-}
+  matcher: ["/auth/:path*", "/manager/:path*", "/construction-worker/:path*"],
+};
