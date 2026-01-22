@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase-browser"
 import { subscribeToTable } from "@/lib/realtime"
 import AddMovementForm from "@/components/AddMovementForm"
+import { ResponsiveSidebar } from "@/components/ResponsiveSidebar"
 
 interface Movement {
   id: string
@@ -67,8 +68,10 @@ export default function MovementsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#f9f5ef] p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="flex min-h-screen bg-[#f9f5ef]">
+      <ResponsiveSidebar />
+      <div className="flex-1 p-6 lg:ml-64">
+        <div className="max-w-6xl mx-auto">
 
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-[#3a2e1f]">🔄 Movements</h1>
@@ -108,7 +111,7 @@ export default function MovementsPage() {
             </div>
           ))}
         </div>
-
+        </div>
       </div>
     </div>
   )

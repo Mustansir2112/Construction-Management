@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase-browser"
 import { subscribeToTable } from "@/lib/realtime"
 import AddInventoryForm from "@/components/AddInventoryForm"
 import { getUserRole } from "@/lib/roleGuard"
+import { ResponsiveSidebar } from "@/components/ResponsiveSidebar"
 
 interface InventoryItem {
   id: string
@@ -39,7 +40,9 @@ export default function InventoryPage() {
     const { data } = await supabase.auth.getUser()
     if (data?.user) {
       const r = await getUserRole(data.user.id)
-      setRole(r)
+      // Map worker roles correctly
+      const mappedRole = r === "worker" || r === "construction_worker" ? "construction_worker" : r
+      setRole(mappedRole)
     }
   }
 
@@ -83,8 +86,10 @@ export default function InventoryPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#f9f5ef] p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="flex min-h-screen bg-[#f9f5ef]">
+      <ResponsiveSidebar />
+      <div className="flex-1 p-6 lg:ml-64">
+        <div className="max-w-6xl mx-auto">
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
@@ -92,7 +97,7 @@ export default function InventoryPage() {
             📦 Inventory
           </h1>
 
-          {(role === "manager" || role === "engineer") && (
+          {(role === "manager" || role === "engineer" || role === "admin") && (
             <AddInventoryForm />
           )}
         </div>
@@ -182,7 +187,7 @@ export default function InventoryPage() {
             </table>
           )}
         </div>
-
+        </div>
       </div>
     </div>
   )

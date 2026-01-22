@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,10 @@ interface AttendanceRecord {
   date: string | null;
 }
 
-export function AttendanceList() {
-  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
+export function AttendanceListIntegrated() {
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadedDays, setLoadedDays] = useState(5);
   const [nameFilter, setNameFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedDateRange, setSelectedDateRange] = useState<string>("today");
@@ -38,7 +39,7 @@ export function AttendanceList() {
       const response = await fetch("/api/attendance");
       const data = await response.json();
       if (Array.isArray(data)) {
-        setAttendanceData(data);
+        setAttendance(data);
       }
     } catch (error) {
       console.error("Error fetching attendance:", error);
@@ -47,19 +48,23 @@ export function AttendanceList() {
     }
   }
 
+  const displayedRecords = attendance.slice(0, loadedDays * 10);
+
   // Get today's date string for filtering
   const today = new Date().toISOString().split("T")[0];
 
   // Get records based on selected date range
   const getRecordsForDateRange = useMemo(() => {
-    let recordsToFilter = attendanceData;
+    let recordsToFilter = displayedRecords;
 
     if (selectedDateRange === "today") {
-      recordsToFilter = attendanceData.filter((r) => r.date === today);
+      recordsToFilter = displayedRecords.filter(
+        (r) => r.date === today
+      );
     } else if (selectedDateRange === "week") {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      recordsToFilter = attendanceData.filter((r) => {
+      recordsToFilter = displayedRecords.filter((r) => {
         if (!r.date) return false;
         const recordDate = new Date(r.date);
         return recordDate >= weekAgo;
@@ -67,7 +72,7 @@ export function AttendanceList() {
     } else if (selectedDateRange === "month") {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      recordsToFilter = attendanceData.filter((r) => {
+      recordsToFilter = displayedRecords.filter((r) => {
         if (!r.date) return false;
         const recordDate = new Date(r.date);
         return recordDate >= monthAgo;
@@ -77,7 +82,7 @@ export function AttendanceList() {
       customStartDate &&
       customEndDate
     ) {
-      recordsToFilter = attendanceData.filter((r) => {
+      recordsToFilter = displayedRecords.filter((r) => {
         if (!r.date) return false;
         const recordDate = new Date(r.date);
         const start = new Date(customStartDate);
@@ -87,7 +92,13 @@ export function AttendanceList() {
     }
 
     return recordsToFilter;
-  }, [selectedDateRange, customStartDate, customEndDate, attendanceData, today]);
+  }, [
+    selectedDateRange,
+    customStartDate,
+    customEndDate,
+    displayedRecords,
+    today,
+  ]);
 
   // Apply filters to records
   const filteredRecords = useMemo(() => {
@@ -96,17 +107,18 @@ export function AttendanceList() {
         .toLowerCase()
         .includes(nameFilter.toLowerCase());
       const statusMatch =
-        statusFilter === "all" || record.w_status === statusFilter;
+        statusFilter === "all" ||
+        (record.w_status || "").toLowerCase() === statusFilter.toLowerCase();
       return nameMatch && statusMatch;
     });
   }, [nameFilter, statusFilter, getRecordsForDateRange]);
 
   // Get summary statistics
   const presentCount = filteredRecords.filter(
-    (r) => r.status === "present",
+    (r) => (r.w_status || "").toLowerCase() === "present"
   ).length;
   const absentCount = filteredRecords.filter(
-    (r) => r.status === "absent",
+    (r) => (r.w_status || "").toLowerCase() === "absent"
   ).length;
   const totalRecords = filteredRecords.length;
 
@@ -122,21 +134,31 @@ export function AttendanceList() {
     }
   };
 
-  const uniqueRoles = [...new Set(displayedRecords.map((r) => r.role))];
+  const uniqueStatuses = [
+    ...new Set(
+      displayedRecords
+        .map((r) => r.w_status)
+        .filter((s): s is string => s !== null)
+    ),
+  ];
+
   const uniqueDates = [
-    ...new Set(filteredRecords.map((r) => r.date)),
+    ...new Set(
+      filteredRecords
+        .map((r) => r.date)
+        .filter((d): d is string => d !== null)
+    ),
   ].reverse();
 
-  const todayRecords = displayedRecords.filter((r) => r.date === today);
-  const filteredTodayRecords = todayRecords.filter((record) => {
-    const nameMatch = record.workerName
-      .toLowerCase()
-      .includes(nameFilter.toLowerCase());
-    const roleMatch = roleFilter === "all" || record.role === roleFilter;
-    const statusMatch =
-      statusFilter === "all" || record.status === statusFilter;
-    return nameMatch && roleMatch && statusMatch;
-  });
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -244,8 +266,11 @@ export function AttendanceList() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="present">Present</SelectItem>
-              <SelectItem value="absent">Absent</SelectItem>
+              {uniqueStatuses.map((status) => (
+                <SelectItem key={status} value={status.toLowerCase()}>
+                  {status}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -253,20 +278,29 @@ export function AttendanceList() {
 
       {/* Attendance Records */}
       {filteredRecords.length > 0 ? (
-        <div className="space-y-4 max-h-150 overflow-y-auto">
+        <div className="space-y-4 max-h-[400px] overflow-y-auto">
           {uniqueDates.map((date) => {
             const dateRecords = filteredRecords.filter((r) => r.date === date);
             const isToday = date === today;
             const dateStats = {
-              present: dateRecords.filter((r) => r.status === "present").length,
-              absent: dateRecords.filter((r) => r.status === "absent").length,
+              present: dateRecords.filter(
+                (r) => (r.w_status || "").toLowerCase() === "present"
+              ).length,
+              absent: dateRecords.filter(
+                (r) => (r.w_status || "").toLowerCase() === "absent"
+              ).length,
             };
 
             return (
               <div key={date}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {date} {isToday ? "(Today)" : ""}
+                    {new Date(date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}{" "}
+                    {isToday ? "(Today)" : ""}
                   </p>
                   <div className="flex gap-2">
                     <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-semibold">
@@ -278,27 +312,27 @@ export function AttendanceList() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  {dateRecords.map((record) => (
+                  {dateRecords.map((record, index) => (
                     <div
-                      key={record.id}
+                      key={`${record.w_id}-${date}-${index}`}
                       className="flex items-center justify-between p-2.5 rounded-lg hover:bg-secondary transition-colors border border-border/50 text-xs"
                     >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-foreground truncate">
-                          {record.workerName}
+                          {record.w_name || record.w_id}
                         </p>
                         <p className="text-muted-foreground text-[11px]">
-                          {record.role}
+                          ID: {record.w_id}
                         </p>
                       </div>
                       <span
                         className={`ml-2 px-2 py-0.5 rounded font-semibold whitespace-nowrap ${
-                          record.status === "present"
+                          (record.w_status || "").toLowerCase() === "present"
                             ? "bg-emerald-100 text-emerald-700"
                             : "bg-red-100 text-red-700"
                         }`}
                       >
-                        {record.status === "present" ? "Present" : "Absent"}
+                        {record.w_status || "Unknown"}
                       </span>
                     </div>
                   ))}
@@ -316,7 +350,7 @@ export function AttendanceList() {
         </div>
       )}
 
-      {loadedDays * 5 < allAttendanceData.length &&
+      {loadedDays * 10 < attendance.length &&
         selectedDateRange !== "custom" && (
           <Button
             variant="outline"

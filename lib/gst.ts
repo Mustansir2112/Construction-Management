@@ -18,8 +18,9 @@ export async function fetchGSTDetails(gstin: string) {
     )
 
     return response.data
-  } catch (error ) {
-    console.warn('GST API call failed, using mock data:', error.message)
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.warn('GST API call failed, using mock data:', errorMessage)
     return getMockGSTData(gstin)
   }
 }
