@@ -1,7 +1,6 @@
 "use client"
 
 import { Sidebar } from "@/components/manager/sidebar"
-import { Header } from "@/components/manager/header"
 import { DailyProgressReports } from "@/components/manager/daily-progress-reports"
 import { KanbanBoard } from "@/components/manager/kanban-board"
 import { AttendanceList } from "@/components/manager/attendance-list"
@@ -14,10 +13,6 @@ export default function ManagerDashboardPage() {
       </div>
 
       <main className="flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
-        <Header
-          title="Manager Dashboard"
-          description="Manage daily progress, team tasks, and attendance."
-        />
 
         <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
           <DailyProgressReports />

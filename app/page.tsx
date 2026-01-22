@@ -1,124 +1,76 @@
-import { createClient } from '@/lib/supabase-server'
-import LogoutButton from '@/components/LogoutButton'
-import StatCard from '@/components/Statcard'
-import AlertPanel from "@/components/AlertPanel"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-interface InventoryItem {
-  quantity: number
-  min_stock?: number
-}
-
-interface Movement {
-  approved: boolean
-}
-
-interface Alert {
-  [key: string]: unknown
-}
-
-export default async function Home() {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const { data: inventory } = await supabase
-    .from('inventory')
-    .select('*') as { data: InventoryItem[] | null }
-
-  const { data: movements } = await supabase
-    .from('movements')
-    .select('*') as { data: Movement[] | null }
-
-  const { data: alerts } = await supabase
-    .from('alerts')
-    .select('*') as { data: Alert[] | null }
-
-  const lowStock =
-    inventory?.filter(i => i.quantity < (i.min_stock ?? 10)).length ?? 0
-
-  const unauthorized =
-    movements?.filter(m => !m.approved).length ?? 0
-
+export default function HeroPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF7F2] to-[#F1E8D9] text-[#2B2B2B] px-4 py-8 sm:px-6 lg:px-12">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-linear-to-br from-amber-50 via-white to-stone-50">
+      <main className="max-w-7xl mx-auto px-6 pt-16 md:pt-24 pb-24 md:pb-32">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Badge */}
+          {/* Headline */}
+          <h1 className="text-4xl md:text-6xl font-bold text-stone-900 mb-6 leading-tight">
+            Construction Management
+            <br />
+            <span className="bg-linear-to-r from-amber-600 to-amber-500 bg-clip-text text-transparent">
+              Made Transparent & Secure
+            </span>
+          </h1>
 
-        {/* Container */}
-        <div className="bg-white/90 backdrop-blur border border-[#E5E0D8] rounded-2xl shadow-xl transition-all duration-500 animate-fadeIn">
+          {/* Subtext */}
+          <p className="text-lg md:text-xl text-stone-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+            Streamline your construction operations with digital work logs,
+            real-time attendance tracking, material management, theft prevention
+            systems, and integrated GST billing—all in one platform.
+          </p>
 
-          <div className="p-6 sm:p-10">
-
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#2B2B2B]">
-                🛡 TheftGuard Control Center
-              </h1>
-              <LogoutButton />
-            </div>
-
-            {/* User Panel */}
-            {user && (
-              <div className="mb-10 p-6 rounded-xl bg-gradient-to-r from-[#F6EBDD] to-[#FDF7EF] border border-[#E5E0D8] shadow-sm hover:shadow-md transition">
-                <h2 className="text-lg font-semibold mb-2">Welcome back 👋</h2>
-                <p className="text-sm text-[#5B4636] truncate">📧 {user.email}</p>
-                <p className="text-xs text-[#8B6F56] mt-1 break-all">
-                  🆔 {user.id}
-                </p>
-              </div>
-            )}
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
-              <StatCard title="Status" value="ACTIVE" color="text-green-600" />
-              <StatCard title="Inventory" value={inventory?.length ?? 0} />
-              <StatCard title="Movements" value={movements?.length ?? 0} />
-              <StatCard title="Unauthorized" value={unauthorized} color="text-red-600" />
-              <StatCard title="Low Stock" value={lowStock} color="text-orange-600" />
-              <StatCard title="Alerts" value={alerts?.length ?? 0} color="text-red-600" />
-            </div>
-
-            {/* Feature Tiles */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-
-              {[
-                { title: 'Inventory', desc: 'Track tools, materials, and stock levels in real-time', icon: '📦' },
-                { title: 'Movements', desc: 'Monitor item movement between zones and workers', icon: '🔄' },
-                { title: 'Alerts', desc: 'Unauthorized activity and low stock notifications', icon: '🚨' },
-                { title: 'Workers', desc: 'Worker identity and access tracking', icon: '👷' },
-                { title: 'Reports', desc: 'Theft risk analytics and history reports', icon: '📊' },
-                { title: 'Settings', desc: 'System rules, stock thresholds, and permissions', icon: '⚙️' },
-              ].map((card) => (
-                <div
-                  key={card.title}
-                  className="
-                    group bg-white border border-[#E5E0D8] rounded-xl p-6 
-                    shadow-sm hover:shadow-lg 
-                    hover:-translate-y-1 transition-all duration-300
-                  "
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link href="/auth/loginAdmin">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white px-8 py-6 text-lg"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <div className="text-3xl mb-3 group-hover:scale-110 transition">
-                    {card.icon}
-                  </div>
-
-                  <h3 className="text-lg font-semibold mb-2 group-hover:text-[#8B6F56] transition">
-                    {card.title}
-                  </h3>
-
-                  <p className="text-sm text-[#5B4636] leading-relaxed">
-                    {card.desc}
-                  </p>
-                </div>
-              ))}
-
-            </div>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                Login as Manager
+              </Button>
+            </Link>
+            <Link href="/auth/loginWorker">
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto border-2 border-stone-300 hover:bg-stone-50 px-8 py-6 text-lg"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Login as Worker
+              </Button>
+            </Link>
           </div>
         </div>
-      </div>
-
-      {/* 🔴 Live Alerts Panel */}
-      <AlertPanel />
+      </main>
     </div>
-  )
+  );
 }
