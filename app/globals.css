@@ -1,26 +1,43 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+html {
+  scroll-behavior: smooth;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #FAF7F2;
+  color: #2B2B2B;
 }
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #E5E0D8;
+  border-radius: 0.75rem;
+}
+
+.btn-primary {
+  background-color: #E6D3B1;
+  color: #2B2B2B;
+}
+
+.btn-primary:hover {
+  background-color: #D9C39C;
+}
+
+.btn-outline {
+  border: 1px solid #C4A26A;
+  color: #C4A26A;
+}
+
+.navbar {
+  background: linear-gradient(90deg, #FAF7F2, #E6D3B1);
+  border-bottom: 1px solid #E5E0D8;
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
