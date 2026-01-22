@@ -103,9 +103,19 @@ export async function middleware(request: NextRequest) {
 
   /* ---------------- WORKER ROUTE PROTECTION ---------------- */
   if (pathname.startsWith("/construction-worker")) {
-    if (role !== "worker") {
+    if (role !== "worker" && role !== "construction_worker") {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/loginWorker";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  /* ---------------- SHARED ROUTES (Inventory, Movements, Dashboard) ---------------- */
+  if (pathname.startsWith("/inventory") || pathname.startsWith("/movements") || pathname.startsWith("/dashboard")) {
+    // Both managers and workers can access, but must be authenticated
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/loginAdmin";
       return NextResponse.redirect(url);
     }
   }
@@ -115,5 +125,12 @@ export async function middleware(request: NextRequest) {
 
 /* ---------------- MATCHER ---------------- */
 export const config = {
-  matcher: ["/auth/:path*", "/manager/:path*", "/construction-worker/:path*"],
+  matcher: [
+    "/auth/:path*",
+    "/manager/:path*",
+    "/construction-worker/:path*",
+    "/inventory/:path*",
+    "/movements/:path*",
+    "/dashboard/:path*",
+  ],
 };

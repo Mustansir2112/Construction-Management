@@ -12,6 +12,8 @@ import {
 import { FileText, Loader } from "lucide-react";
 import { createClient } from "@/lib/supabase-browser";
 import { InvoiceData } from "@/types/invoice";
+import { InvoiceFormWithInventory } from "./InvoiceFormWithInventory";
+
 const demoInvoiceData: InvoiceData = {
   invoiceNo: "INV-2024-0012",
   invoiceDate: "15 Sep 2024",
@@ -82,7 +84,22 @@ export function GSTInvoiceGenerator() {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  async function createPDF() {
+  const handleGenerateFromForm = (data: InvoiceData) => {
+    setInvoice(data);
+    // Auto-generate after form submission
+    setTimeout(() => {
+      createPDF(data);
+    }, 100);
+  };
+
+  async function createPDF(invoiceData?: InvoiceData) {
+    const dataToUse = invoiceData || invoice;
+    
+    if (!dataToUse || !dataToUse.company.name || !dataToUse.client.name || dataToUse.items.length === 0) {
+      alert("Please fill in all required fields and add at least one item");
+      return;
+    }
+
     setIsLoading(true);
     console.log("creating pdf");
     try {
@@ -91,7 +108,7 @@ export function GSTInvoiceGenerator() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(invoice),
+        body: JSON.stringify(dataToUse),
       });
 
       if (!res.ok) {
@@ -101,10 +118,12 @@ export function GSTInvoiceGenerator() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       setGeneratedPdfUrl(url);
+      setInvoice(dataToUse);
+      
       // Create a temporary download link
       const link = document.createElement("a");
       link.href = url;
-      link.download = `invoice-${invoice?.invoiceNo}.pdf`;
+      link.download = `invoice-${dataToUse.invoiceNo}.pdf`;
       document.body.appendChild(link);
       link.click();
 
@@ -113,6 +132,26 @@ export function GSTInvoiceGenerator() {
       URL.revokeObjectURL(url);
 
       console.log("PDF downloaded successfully");
+      
+      // Refresh past invoices
+      const supabase = createClient();
+      const { data } = await supabase.storage.from(GST_BUCKET).list("", {
+        limit: 50,
+        sortBy: { column: "created_at", order: "desc" },
+      });
+      if (data) {
+        const formatted = data
+          .filter((file) => file.name.toLowerCase().endsWith(".pdf"))
+          .map((file) => ({
+            name: file.name,
+            createdAt: new Date(file.created_at).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+          }));
+        setPastInvoices(formatted);
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
@@ -182,39 +221,9 @@ export function GSTInvoiceGenerator() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-6 transition-all duration-500 hover:shadow-xl animate-slide-in-up">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-foreground">
-            Generate GST Invoice
-          </h2>
-          <FileText className="w-5 h-5 text-muted-foreground" />
-        </div>
+      <InvoiceFormWithInventory onGenerate={handleGenerateFromForm} />
 
-        <p className="text-sm text-muted-foreground mb-6">
-          Click the button below to generate a new GST invoice with tax
-          breakdown and payment details.
-        </p>
-
-        <Button
-          onClick={createPDF}
-          disabled={isLoading}
-          className="w-full sm:w-auto h-10 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
-        >
-          {isLoading ? (
-            <>
-              <Loader className="w-4 h-4 mr-2 animate-spin" />
-              Generating Invoice...
-            </>
-          ) : (
-            <>
-              <FileText className="w-4 h-4 mr-2" />
-              Generate GST Invoice
-            </>
-          )}
-        </Button>
-      </Card>
-
-      {invoice && (
+      {invoice && invoice.items.length > 0 && (
         <Card className="p-8 transition-all duration-500 hover:shadow-xl animate-slide-in-up bg-white">
           {/* Invoice Header */}
           <div className="border-b-2 border-border pb-6 mb-6">

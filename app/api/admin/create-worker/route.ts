@@ -38,6 +38,18 @@ export async function POST(req: Request) {
 
     const userId = authUser.user.id;
 
+    // Use the role from body, default to "worker" if not provided
+    // Map construction_worker to worker for consistency
+    // Also handle "engineer" role
+    let userRole = role || "worker";
+    if (userRole === "construction_worker") {
+      userRole = "worker";
+    }
+    // Ensure role is valid
+    if (!["worker", "engineer", "manager", "admin"].includes(userRole)) {
+      userRole = "worker";
+    }
+
     // 2. Insert profile
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
@@ -46,7 +58,7 @@ export async function POST(req: Request) {
         email,
         full_name: fullName,
         phone,
-        role: "construction_worker",
+        role: userRole === "worker" ? "construction_worker" : userRole, // profiles table uses construction_worker
       });
 
     if (profileError) {
@@ -62,7 +74,7 @@ export async function POST(req: Request) {
       .from("user_roles")
       .insert({
         id: userId,
-        role: "construction_worker",
+        role: userRole,
       });
 
     if (roleError) {

@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { supabase } from "@/lib/supabase-browser"
+import { supabase, createClient } from "@/lib/supabase-browser"
 import { Database } from "@/types/supabase"
 
 type MovementInsert = Database['public']['Tables']['movements']['Insert']
@@ -16,29 +16,81 @@ export default function AddMovementForm() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
   async function submit() {
     setLoading(true)
     setError(null)
+    setSuccess(false)
 
-    const { error: insertError } = await supabase.from("movements").insert(form)
-    
-    setLoading(false)
+    try {
+      // Get current user
+      const supabaseClient = createClient()
+      const { data: { user } } = await supabaseClient.auth.getUser()
+      
+      if (!user) {
+        setError("You must be logged in to log movements")
+        setLoading(false)
+        return
+      }
 
-    if (insertError) {
-      console.error("Error inserting movement:", insertError.message)
-      setError(insertError.message)
-      return
+      // Insert movement into database
+      const { data: movementData, error: insertError } = await supabase
+        .from("movements")
+        .insert({
+          ...form,
+          worker_id: form.worker_id || user.id
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error("Error inserting movement:", insertError.message)
+        setError(insertError.message)
+        setLoading(false)
+        return
+      }
+
+      // Process the movement (update inventory, trigger alerts) via API
+      try {
+        const processResponse = await fetch("/api/movements/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            item_id: form.item_id,
+            from_zone: form.from_zone,
+            to_zone: form.to_zone
+          })
+        })
+
+        if (!processResponse.ok) {
+          const errorData = await processResponse.json()
+          console.error("Error processing movement:", errorData.error)
+          // Don't fail the whole operation, just log the error
+        }
+      } catch (processError) {
+        console.error("Error processing movement:", processError)
+        // Don't fail the whole operation, just log the error
+      }
+
+      setSuccess(true)
+      
+      // Reset form after a short delay
+      setTimeout(() => {
+        setForm({
+          worker_id: "",
+          item_id: "",
+          from_zone: "",
+          to_zone: "",
+          approved: false
+        })
+        setSuccess(false)
+      }, 2000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setLoading(false)
     }
-    
-    // Reset form
-    setForm({
-      worker_id: "",
-      item_id: "",
-      from_zone: "",
-      to_zone: "",
-      approved: false
-    })
   }
 
   return (
@@ -56,8 +108,14 @@ export default function AddMovementForm() {
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 mt-2">
+        <p className="text-sm text-red-600 mt-2 animate-pulse">
           ❌ {error}
+        </p>
+      )}
+
+      {success && (
+        <p className="text-sm text-green-600 mt-2 animate-pulse">
+          ✅ Movement logged successfully!
         </p>
       )}
 

@@ -1,15 +1,27 @@
-import { supabaseAdmin } from "@/lib/supabase-server"
+import { createClient } from "@supabase/supabase-js"
 import { runAlertEngine } from "./alertEngine"
 import { Database } from "@/types/supabase"
 
 type InventoryRow = Database['public']['Tables']['inventory']['Row']
 type InventoryUpdate = Database['public']['Tables']['inventory']['Update']
 
+// Create admin client for server-side operations
+const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+  : null
+
 export async function processMovement(movement: {
   item_id: string
   from_zone: string
   to_zone: string
 }) {
+  if (!supabaseAdmin) {
+    throw new Error("Supabase admin client not configured")
+  }
+
   const { data: item } = await supabaseAdmin
     .from("inventory")
     .select("*")

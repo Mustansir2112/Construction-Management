@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar"; // ✅ 1. Import Navbar
 import InstallPWAButton from "@/components/InstallPWAButton"
 
 
@@ -16,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BuildSite App", // Updated title
+  title: "BuildSite App",
   description: "Construction site management platform",
+  manifest: "/manifest.json",
+  themeColor: "#d97706",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
 };
 
 export default function RootLayout({
@@ -31,16 +33,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        {/* ✅ 2. Add Navbar here */}
-        <Navbar />
-        
-        {/* ✅ 3. Add padding-top (pt-16) so content isn't hidden behind the fixed navbar */}
-        <main className="pt-16">
-
-
         <InstallPWAButton />
-          {children}
-        </main>
+        {children}
       </body>
     </html>
   );
