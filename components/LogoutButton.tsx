@@ -7,16 +7,22 @@ export default function LogoutButton() {
   const router = useRouter()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth/login')
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    })
+
+    // Optional: redirect after logout
+    window.location.href = "/login"
   }
 
   return (
     <button
       onClick={handleLogout}
-      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+      className="btn-outline"
     >
       Logout
     </button>
   )
 }
+
+  

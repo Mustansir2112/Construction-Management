@@ -1,32 +1,24 @@
-import { createServerClient } from '@supabase/ssr'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import { Database } from '@/types/supabase'
+import { cookies } from "next/headers"
+import { createServerClient } from "@supabase/ssr"
 
 export async function createClient() {
   const cookieStore = await cookies()
 
-  return createServerClient<Database>(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
+        get(name: string) {
           return cookieStore.get(name)?.value
         },
-        set(name, value, options) {
-          cookieStore.set({ name, value, ...options })
+        set() {
+          // ❌ NO-OP (Next.js forbids setting cookies here)
         },
-        remove(name, options) {
-          cookieStore.set({ name, value: '', ...options })
+        remove() {
+          // ❌ NO-OP (Next.js forbids removing cookies here)
         },
       },
     }
   )
 }
-
-// Admin client for server-side operations that need elevated privileges
-export const supabaseAdmin = createSupabaseClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
