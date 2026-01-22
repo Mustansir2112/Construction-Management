@@ -1,16 +1,20 @@
-"use client"
-import { InvoiceData } from "@/types/invoice"
-// import { useEffect } from "react"
+'use client'
 
-export default function ManagerDashboard() {
-    const invoiceData : InvoiceData = {
+import { InvoiceData } from "@/types/invoice"
+import { useEffect, useState } from "react"
+
+export default function InvoicePreviewPage() {
+    const [invoiceHTML, setInvoiceHTML] = useState<string>('')
+    const [loading, setLoading] = useState(true)
+
+    const invoiceData: InvoiceData = {
         invoiceNo: "INV-2026-00125",
         invoiceDate: "2026-01-22",
         dueDate: "2026-02-05",
 
         company: {
             name: "BuildRight Constructions Pvt. Ltd.",
-            gstin: " ",
+            gstin: "27AABCU9603R1ZV",
             address: "3rd Floor, Tech Park, Andheri East, Mumbai, Maharashtra - 400069",
             phone: "+91 98765 43210"
         },
@@ -59,8 +63,30 @@ export default function ManagerDashboard() {
         ]
     }
 
-    async function createPDF() {
-        console.log('creating pdf');
+    async function loadInvoicePreview() {
+        try {
+            const res = await fetch("/api/invoice/preview", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(invoiceData)
+            })
+
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`)
+            }
+
+            const html = await res.text()
+            setInvoiceHTML(html)
+        } catch (error) {
+            console.error('Error loading invoice preview:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    async function downloadPDF() {
         try {
             const res = await fetch("/api/invoice", {
                 method: "POST",
@@ -76,43 +102,55 @@ export default function ManagerDashboard() {
 
             const blob = await res.blob()
             const url = URL.createObjectURL(blob)
-
-            // Create a temporary download link
+            
             const link = document.createElement('a')
             link.href = url
             link.download = `invoice-${invoiceData.invoiceNo}.pdf`
             document.body.appendChild(link)
             link.click()
-
-            // Clean up
+            
             document.body.removeChild(link)
             URL.revokeObjectURL(url)
-
-            console.log('PDF downloaded successfully')
         } catch (error) {
             console.error('Error generating PDF:', error)
         }
     }
 
+    useEffect(() => {
+        loadInvoicePreview()
+    }, [])
+
+    if (loading) {
+        return (
+            <div className="p-8">
+                <div className="text-center">Loading invoice preview...</div>
+            </div>
+        )
+    }
+
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-6">Manager Dashboard</h1>
-            
-            <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold mb-4">Invoice Generation</h2>
-                <p className="text-gray-600 mb-4">
-                    Generate PDF invoice for: {invoiceData.client.name}
-                </p>
-                <p className="text-sm text-gray-500 mb-6">
-                    Invoice No: {invoiceData.invoiceNo} | Date: {invoiceData.invoiceDate}
-                </p>
-                
-                <button 
-                    onClick={createPDF}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                    Download PDF Invoice
-                </button>
+        <div className="min-h-screen bg-gray-100">
+            {/* Fixed header with download button */}
+            <div className="fixed top-0 left-0 right-0 bg-white shadow-md z-10 p-4">
+                <div className="max-w-4xl mx-auto flex justify-between items-center">
+                    <h1 className="text-xl font-bold">Invoice Preview</h1>
+                    <button 
+                        onClick={downloadPDF}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                    >
+                        Download PDF
+                    </button>
+                </div>
+            </div>
+
+            {/* Invoice content */}
+            <div className="pt-20 pb-8">
+                <div className="max-w-4xl mx-auto bg-white shadow-lg">
+                    <div 
+                        dangerouslySetInnerHTML={{ __html: invoiceHTML }}
+                        className="invoice-content"
+                    />
+                </div>
             </div>
         </div>
     )

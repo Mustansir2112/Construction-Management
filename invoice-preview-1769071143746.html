@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { 
+    font-family: Arial, sans-serif; 
+    padding: 40px; 
+    margin: 0;
+    background: white;
+  }
+  h1 { 
+    text-align: center; 
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 28px;
+  }
+  table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin: 20px 0;
+  }
+  th, td { 
+    border: 1px solid #333; 
+    padding: 12px 8px; 
+    font-size: 12px; 
+  }
+  th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    text-align: center;
+  }
+  .header { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 20px;
+  }
+  .header > div {
+    flex: 1;
+  }
+  .header > div:last-child {
+    text-align: right;
+  }
+  .box { 
+    border: 1px solid #333; 
+    padding: 15px; 
+    margin: 20px 0;
+    background-color: #fafafa;
+  }
+  .totals-table {
+    width: 300px;
+    margin-left: auto;
+    margin-top: 20px;
+  }
+  .totals-table td {
+    padding: 8px 12px;
+  }
+  .totals-table .total-row {
+    font-weight: bold;
+    background-color: #f0f0f0;
+  }
+  .company-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2563eb;
+  }
+  .invoice-info {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<h1>TAX INVOICE</h1>
+
+<div class="header">
+  <div>
+    <div class="company-name">BuildRight Constructions Pvt. Ltd.</div>
+    <div style="margin-top: 10px; line-height: 1.5;">
+      3rd Floor, Tech Park, Andheri East, Mumbai, Maharashtra - 400069<br>
+      <strong>GSTIN:</strong> 27AABCU9603R1ZV<br>
+      <strong>Phone:</strong> +91 98765 43210
+    </div>
+  </div>
+  <div class="invoice-info">
+    <strong>Invoice No:</strong> INV-2026-00125<br>
+    <strong>Date:</strong> 2026-01-22<br>
+    <strong>Due Date:</strong> 2026-02-05
+  </div>
+</div>
+
+<div class="box">
+  <strong style="font-size: 14px;">Bill To:</strong><br><br>
+  <strong>Sharma Infrastructure Group</strong><br>
+  Plot No. 18, Industrial Area Phase 2, Whitefield, Bengaluru, Karnataka - 560066<br>
+  <strong>GSTIN:</strong> 29AACCS1234F1ZP<br><br>
+
+  <strong>Project:</strong> Orchid Heights Residential Tower<br>
+  <strong>Site:</strong> Survey No. 102, Sarjapur Road, Bengaluru, Karnataka - 562125
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 40px;">#</th>
+      <th style="width: 300px;">Description</th>
+      <th style="width: 80px;">HSN</th>
+      <th style="width: 100px;">Qty</th>
+      <th style="width: 100px;">Rate</th>
+      <th style="width: 60px;">Tax</th>
+      <th style="width: 120px;">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      <tr>
+        <td style="text-align: center;">1</td>
+        <td>M25 Grade Ready-Mix Concrete Supply</td>
+        <td style="text-align: center;">3824</td>
+        <td style="text-align: center;">50 Cubic Meter</td>
+        <td style="text-align: right;">₹5,200</td>
+        <td style="text-align: center;">18%</td>
+        <td style="text-align: right;">₹260,000</td>
+      </tr>
+    
+      <tr>
+        <td style="text-align: center;">2</td>
+        <td>TMT Steel Bars (Fe 500D)</td>
+        <td style="text-align: center;">7214</td>
+        <td style="text-align: center;">4.5 Metric Ton</td>
+        <td style="text-align: right;">₹58,500</td>
+        <td style="text-align: center;">18%</td>
+        <td style="text-align: right;">₹263,250</td>
+      </tr>
+    
+  </tbody>
+</table>
+
+<table class="totals-table">
+  <tr>
+    <td><strong>Subtotal:</strong></td>
+    <td style="text-align: right;"><strong>₹523,250</strong></td>
+  </tr>
+  <tr>
+    <td><strong>Total Tax:</strong></td>
+    <td style="text-align: right;"><strong>₹94,185</strong></td>
+  </tr>
+  <tr class="total-row">
+    <td><strong>Grand Total:</strong></td>
+    <td style="text-align: right;"><strong>₹617,435</strong></td>
+  </tr>
+</table>
+
+<div class="box">
+  <strong>GST Registered Name:</strong> Verified Business Entity<br>
+  <strong>GST Status:</strong> Active
+</div>
+
+<div style="margin-top: 40px;">
+  <strong>Authorized Signature:</strong><br><br>
+  <div style="border-bottom: 1px solid #333; width: 300px; margin-top: 30px;"></div>
+</div>
+
+</body>
+</html>

@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase-server'
 import LogoutButton from '@/components/LogoutButton'
+import ManagerDashboard from './manager/manager'
+import InvoiceHistory from '@/components/InvoiceHistory'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -10,6 +12,8 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <ManagerDashboard />
+      <InvoiceHistory />
       <div className="max-w-7xl mx-auto">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
