@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   }
 
   const { error } = await supabase.from("dprs").insert({
-    project_id: projectId || null,
+    project: projectId || null,
     date: body.date,
     work_done: body.work_done,
     labor_count: body.labor_count || 0,

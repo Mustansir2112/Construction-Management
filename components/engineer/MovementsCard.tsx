@@ -11,15 +11,26 @@ export default function MovementsCard() {
 
   useEffect(() => {
     async function fetchMovements() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("movements")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(5);
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("movements")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(5);
 
-      if (data) setMovements(data);
-      setLoading(false);
+        if (error) {
+          console.error("Error fetching movements:", error);
+          setMovements([]);
+        } else if (data) {
+          setMovements(data);
+        }
+      } catch (error) {
+        console.error("Error fetching movements:", error);
+        setMovements([]);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchMovements();

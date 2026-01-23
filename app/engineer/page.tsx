@@ -1,9 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import MarkAttendanceRequests from '@/components/engineer/MarkAttendanceRequests';
-import MarkAttendanceWithoutInternet from '@/components/engineer/MarkAttendanceWithoutInternet';
+import { useState, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+// Lazy load heavy components
+const MarkAttendanceRequests = dynamic(() => import('@/components/engineer/MarkAttendanceRequests'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg"></div>,
+  ssr: false
+});
+
+const MarkAttendanceWithoutInternet = dynamic(() => import('@/components/engineer/MarkAttendanceWithoutInternet'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg"></div>,
+  ssr: false
+});
 
 export default function EngineerDashboard() {
   const [activeTab, setActiveTab] = useState<'requests' | 'manual'>('requests');
@@ -88,7 +98,9 @@ export default function EngineerDashboard() {
         <div className="space-y-6">
           {activeTab === 'requests' && (
             <div className="space-y-4">
-              <MarkAttendanceRequests />
+              <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg"></div>}>
+                <MarkAttendanceRequests />
+              </Suspense>
               
               {/* Additional Info for Requests */}
               <Card className="bg-blue-50 border-blue-200">
@@ -113,7 +125,9 @@ export default function EngineerDashboard() {
 
           {activeTab === 'manual' && (
             <div className="space-y-4">
-              <MarkAttendanceWithoutInternet />
+              <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg"></div>}>
+                <MarkAttendanceWithoutInternet />
+              </Suspense>
               
               {/* Additional Info for Manual */}
               <Card className="bg-orange-50 border-orange-200">

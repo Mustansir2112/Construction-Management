@@ -17,49 +17,82 @@ export default function MarkAttendanceWithoutInternet() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Mock data for available workers - replace with actual Supabase calls
+  // Fetch workers from user_roles table only when component mounts
   useEffect(() => {
-    // Simulate API call to get all workers
-    setTimeout(() => {
-      setWorkers([
-        {
-          id: 'w1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          phone_number: '+1234567890',
-          is_present: false
-        },
-        {
-          id: 'w2',
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          phone_number: '+1234567891',
-          is_present: false
-        },
-        {
-          id: 'w3',
-          name: 'Mike Johnson',
-          email: 'mike@example.com',
-          phone_number: '+1234567892',
-          is_present: false
-        },
-        {
-          id: 'w4',
-          name: 'Sarah Wilson',
-          email: 'sarah@example.com',
-          phone_number: '+1234567893',
-          is_present: false
-        },
-        {
-          id: 'w5',
-          name: 'David Brown',
-          email: 'david@example.com',
-          phone_number: '+1234567894',
-          is_present: false
+    let mounted = true;
+    
+    async function fetchWorkers() {
+      if (!mounted) return;
+      
+      try {
+        // Fetch all users with worker role
+        const response = await fetch('/api/admin/create-worker');
+        if (response.ok && mounted) {
+          const data = await response.json();
+          // Filter only workers and format for our component
+          const workerUsers = data.filter((user: any) => 
+            user.role === 'worker' || user.role === 'construction_worker'
+          ).map((user: any) => ({
+            id: user.id,
+            name: user.full_name || user.email.split('@')[0],
+            email: user.email,
+            phone_number: user.phone || 'N/A',
+            is_present: false
+          }));
+          setWorkers(workerUsers);
+        } else if (mounted) {
+          console.error('Failed to fetch workers');
+          // Fallback to mock data if API fails
+          setWorkers([
+            {
+              id: 'w1',
+              name: 'John Doe',
+              email: 'john@example.com',
+              phone_number: '+1234567890',
+              is_present: false
+            },
+            {
+              id: 'w2',
+              name: 'Jane Smith',
+              email: 'jane@example.com',
+              phone_number: '+1234567891',
+              is_present: false
+            }
+          ]);
         }
-      ]);
-      setLoading(false);
-    }, 1000);
+      } catch (error) {
+        if (mounted) {
+          console.error('Error fetching workers:', error);
+          // Fallback to mock data
+          setWorkers([
+            {
+              id: 'w1',
+              name: 'John Doe',
+              email: 'john@example.com',
+              phone_number: '+1234567890',
+              is_present: false
+            },
+            {
+              id: 'w2',
+              name: 'Jane Smith',
+              email: 'jane@example.com',
+              phone_number: '+1234567891',
+              is_present: false
+            }
+          ]);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchWorkers();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const toggleWorkerAttendance = (workerId: string) => {
@@ -92,16 +125,24 @@ export default function MarkAttendanceWithoutInternet() {
         .filter(worker => worker.is_present)
         .map(worker => worker.id);
 
-      // Here you would call Supabase to:
-      // 1. Insert/update daily_attendance record for today
-      // 2. Set present_worker_ids array with selected worker IDs
-      
-      console.log('Saving attendance for:', presentWorkerIds);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      alert(`Attendance saved successfully! ${presentWorkerIds.length} workers marked present.`);
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'save_manual_attendance',
+          presentWorkerIds,
+          date: new Date().toISOString().split('T')[0]
+        }),
+      });
+
+      if (response.ok) {
+        alert(`Attendance saved successfully! ${presentWorkerIds.length} workers marked present.`);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to save attendance: ${errorData.error}`);
+      }
     } catch (error) {
       console.error('Error saving attendance:', error);
       alert('Failed to save attendance. Please try again.');

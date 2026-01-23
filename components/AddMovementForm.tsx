@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { supabase, createClient } from "@/lib/supabase-browser"
+import { createClient } from "@/lib/supabase-browser"
 import { Database } from "@/types/supabase"
 
 type MovementInsert = Database['public']['Tables']['movements']['Insert']
@@ -35,7 +35,7 @@ export default function AddMovementForm() {
       }
 
       // Insert movement into database
-      const { data: movementData, error: insertError } = await supabase
+      const { data: movementData, error: insertError } = await supabaseClient
         .from("movements")
         .insert({
           ...form,

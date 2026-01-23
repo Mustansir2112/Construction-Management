@@ -25,9 +25,15 @@ const allMenuItems: MenuItem[] = [
   },
   {
     icon: LayoutDashboard,
+    label: "Engineer Dashboard",
+    href: "/engineer",
+    roles: ["engineer"]
+  },
+  {
+    icon: LayoutDashboard,
     label: "Worker Dashboard",
     href: "/construction-worker",
-    roles: ["worker", "construction_worker", "engineer"]
+    roles: ["worker", "construction_worker"]
   },
   { 
     icon: UserPlus, 

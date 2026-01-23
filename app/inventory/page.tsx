@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase-browser"
+import { createClient } from "@/lib/supabase-browser"
 import { subscribeToTable } from "@/lib/realtime"
 import AddInventoryForm from "@/components/AddInventoryForm"
 import { getUserRole } from "@/lib/roleGuard"
@@ -22,6 +22,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true)
 
   async function fetchInventory() {
+    const supabase = createClient()
     const { data, error } = await supabase
       .from("inventory")
       .select("*")
@@ -29,6 +30,7 @@ export default function InventoryPage() {
 
     if (error) {
       console.error("Fetch failed:", error.message)
+      setLoading(false)
       return
     }
 
@@ -37,6 +39,7 @@ export default function InventoryPage() {
   }
 
   async function fetchRole() {
+    const supabase = createClient()
     const { data } = await supabase.auth.getUser()
     if (data?.user) {
       const r = await getUserRole(data.user.id)

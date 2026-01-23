@@ -7,6 +7,42 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+export async function GET(req: Request) {
+  try {
+    // Fetch all users with their roles
+    const { data: users, error } = await supabaseAdmin
+      .from("user_roles")
+      .select(`
+        id,
+        role,
+        profiles!inner(
+          email,
+          full_name,
+          phone
+        )
+      `);
+
+    if (error) {
+      console.error("Error fetching users:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Format the response
+    const formattedUsers = users?.map(user => ({
+      id: user.id,
+      role: user.role,
+      email: user.profiles?.email || '',
+      full_name: user.profiles?.full_name || '',
+      phone: user.profiles?.phone || ''
+    })) || [];
+
+    return NextResponse.json(formattedUsers);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();

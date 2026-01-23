@@ -28,6 +28,8 @@ export default function ManagerLoginPage() {
     setIsLoading(true);
 
     try {
+      const supabase = createClient();
+      
       // Step 1: Sign in with Supabase
       const { data: authData, error: authError } =
         await supabase.auth.signInWithPassword({

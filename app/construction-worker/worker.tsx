@@ -4,7 +4,8 @@ import { Suspense, lazy, useState, useEffect } from "react";
 import { ResponsiveSidebar } from "@/components/ResponsiveSidebar";
 import { createClient } from "@/lib/supabase-browser";
 import { getUserRole } from "@/lib/roleGuard";
-import { Package, Move, ClipboardList, Clock, TrendingUp } from "lucide-react";
+import { Package, Move, ClipboardList, Clock, TrendingUp, UserCheck, Users } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Lazy load components for better performance
 const InventoryCard = lazy(() => import("@/components/engineer/InventoryCard"));
@@ -12,6 +13,12 @@ const MovementsCard = lazy(() => import("@/components/engineer/MovementsCard"));
 const DPRsCard = lazy(() => import("@/components/engineer/DPRsCard"));
 const TasksCard = lazy(() => import("@/components/engineer/TasksCard"));
 import CreateDPRForm from "@/components/engineer/CreateDPRForm";
+
+// Attendance components
+import AttendanceMarker from "@/components/worker/attendance-marker";
+import OnlineStatusWarning from "@/components/worker/online-status-warning";
+import MarkAttendanceRequests from "@/components/engineer/MarkAttendanceRequests";
+import MarkAttendanceWithoutInternet from "@/components/engineer/MarkAttendanceWithoutInternet";
 
 interface Stats {
   inventoryItems: number;
@@ -29,6 +36,8 @@ export default function ConstructionWorkerDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string>("worker");
+  const [isOnline, setIsOnline] = useState(true);
+  const [activeAttendanceTab, setActiveAttendanceTab] = useState<'requests' | 'manual'>('requests');
 
   useEffect(() => {
     async function initialize() {
@@ -99,10 +108,10 @@ export default function ConstructionWorkerDashboard() {
         {/* Header with animation */}
         <div className="mb-6 animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
-            Welcome Back! 👷
+            Worker Dashboard 👷
           </h1>
           <p className="text-slate-600">
-            Manage your work, track inventory, and log daily progress
+            Request attendance, approve requests, manage work, and track progress
           </p>
         </div>
 
@@ -138,36 +147,78 @@ export default function ConstructionWorkerDashboard() {
           />
         </div>
 
-        {/* Create DPR Section - Collapsible */}
-        <div className="mb-6">
+        {/* Attendance Section */}
+        <div className="mb-6 space-y-6">
+          {/* Request Attendance Section */}
+          <details className="bg-white rounded-xl shadow-md p-4" open>
+            <summary className="cursor-pointer font-semibold text-lg text-slate-900 flex items-center gap-2 list-none">
+              <UserCheck className="w-5 h-5 text-blue-500" />
+              <span>Request Attendance</span>
+            </summary>
+            <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <OnlineStatusWarning onStatusChange={setIsOnline} />
+              <AttendanceMarker isOnline={isOnline} />
+            </div>
+          </details>
+
+          {/* Approve Attendance Section */}
           <details className="bg-white rounded-xl shadow-md p-4">
             <summary className="cursor-pointer font-semibold text-lg text-slate-900 flex items-center gap-2 list-none">
-              <ClipboardList className="w-5 h-5" />
-              <span>Create Daily Progress Report</span>
+              <Users className="w-5 h-5 text-green-500" />
+              <span>Approve Attendance</span>
             </summary>
             <div className="mt-4">
-              <CreateDPRForm onSuccess={() => {
-                fetchStats();
-                // Close details after success
-                const details = document.querySelector('details');
-                if (details) details.removeAttribute('open');
-              }} />
+              {/* Tab Navigation */}
+              <Card className="mb-4">
+                <CardHeader>
+                  <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setActiveAttendanceTab('requests')}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        activeAttendanceTab === 'requests'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Online Requests
+                    </button>
+                    <button
+                      onClick={() => setActiveAttendanceTab('manual')}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                        activeAttendanceTab === 'manual'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Manual Attendance
+                    </button>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              {/* Tab Content */}
+              {activeAttendanceTab === 'requests' && (
+                <MarkAttendanceRequests />
+              )}
+              {activeAttendanceTab === 'manual' && (
+                <MarkAttendanceWithoutInternet />
+              )}
             </div>
           </details>
         </div>
 
-        {/* Create DPR Section - Collapsible */}
+        {/* Create DPR Section */}
         <div className="mb-6">
           <details className="bg-white rounded-xl shadow-md p-4">
             <summary className="cursor-pointer font-semibold text-lg text-slate-900 flex items-center gap-2 list-none">
-              <ClipboardList className="w-5 h-5" />
+              <ClipboardList className="w-5 h-5 text-purple-500" />
               <span>Create Daily Progress Report</span>
             </summary>
             <div className="mt-4">
               <CreateDPRForm onSuccess={() => {
                 fetchStats();
                 // Close details after success
-                const details = document.querySelector('details');
+                const details = document.querySelector('details[open]:last-of-type');
                 if (details) details.removeAttribute('open');
               }} />
             </div>

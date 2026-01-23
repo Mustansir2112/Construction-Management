@@ -11,15 +11,26 @@ export default function InventoryCard() {
 
   useEffect(() => {
     async function fetchItems() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("inventory")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(5);
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("inventory")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(5);
 
-      if (data) setItems(data);
-      setLoading(false);
+        if (error) {
+          console.error("Error fetching inventory:", error);
+          setItems([]);
+        } else if (data) {
+          setItems(data);
+        }
+      } catch (error) {
+        console.error("Error fetching inventory:", error);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchItems();

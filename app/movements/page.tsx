@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase-browser"
+import { createClient } from "@/lib/supabase-browser"
 import { subscribeToTable } from "@/lib/realtime"
 import AddMovementForm from "@/components/AddMovementForm"
 import { ResponsiveSidebar } from "@/components/ResponsiveSidebar"
@@ -20,6 +20,7 @@ export default function MovementsPage() {
   const [movements, setMovements] = useState<Movement[]>([])
 
   async function fetchMovements() {
+    const supabase = createClient()
     const { data } = await supabase
       .from("movements")
       .select("*")

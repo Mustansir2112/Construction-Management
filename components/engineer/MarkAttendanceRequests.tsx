@@ -21,50 +21,37 @@ export default function MarkAttendanceRequests() {
   const [requests, setRequests] = useState<AttendanceRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock data for now - replace with actual Supabase calls
+  // Fetch attendance requests from API only when component mounts
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setRequests([
-        {
-          id: '1',
-          worker_id: 'w1',
-          worker_name: 'John Doe',
-          worker_email: 'john@example.com',
-          request_date: '2024-01-24',
-          request_time: '09:15:30',
-          location_lat: 28.6139,
-          location_lng: 77.2090,
-          is_within_zone: true,
-          status: 'pending'
-        },
-        {
-          id: '2',
-          worker_id: 'w2',
-          worker_name: 'Jane Smith',
-          worker_email: 'jane@example.com',
-          request_date: '2024-01-24',
-          request_time: '09:22:15',
-          location_lat: 28.6200,
-          location_lng: 77.2150,
-          is_within_zone: false,
-          status: 'pending'
-        },
-        {
-          id: '3',
-          worker_id: 'w3',
-          worker_name: 'Mike Johnson',
-          worker_email: 'mike@example.com',
-          request_date: '2024-01-24',
-          request_time: '09:18:45',
-          location_lat: 28.6135,
-          location_lng: 77.2085,
-          is_within_zone: true,
-          status: 'pending'
+    let mounted = true;
+    
+    async function fetchRequests() {
+      if (!mounted) return;
+      
+      try {
+        const response = await fetch('/api/attendance?type=requests');
+        if (response.ok && mounted) {
+          const data = await response.json();
+          setRequests(data);
+        } else if (mounted) {
+          console.error('Failed to fetch attendance requests');
         }
-      ]);
-      setLoading(false);
-    }, 1000);
+      } catch (error) {
+        if (mounted) {
+          console.error('Error fetching attendance requests:', error);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchRequests();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleApproveRequest = async (requestId: string, workerId: string, isWithinZone: boolean) => {
@@ -74,20 +61,32 @@ export default function MarkAttendanceRequests() {
     }
 
     try {
-      // Here you would call Supabase to:
-      // 1. Update the request status to 'approved'
-      // 2. Add the worker to today's attendance record
-      
-      setRequests(prev => 
-        prev.map(req => 
-          req.id === requestId 
-            ? { ...req, status: 'approved' as const }
-            : req
-        )
-      );
-      
-      console.log(`Approved attendance for worker ${workerId}`);
-      alert('Attendance approved successfully!');
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve_request',
+          requestId,
+          workerId,
+          isWithinZone
+        }),
+      });
+
+      if (response.ok) {
+        setRequests(prev => 
+          prev.map(req => 
+            req.id === requestId 
+              ? { ...req, status: 'approved' as const }
+              : req
+          )
+        );
+        alert('Attendance approved successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to approve attendance: ${errorData.error}`);
+      }
     } catch (error) {
       console.error('Error approving attendance:', error);
       alert('Failed to approve attendance. Please try again.');
@@ -96,18 +95,30 @@ export default function MarkAttendanceRequests() {
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      // Here you would call Supabase to update the request status to 'rejected'
-      
-      setRequests(prev => 
-        prev.map(req => 
-          req.id === requestId 
-            ? { ...req, status: 'rejected' as const }
-            : req
-        )
-      );
-      
-      console.log(`Rejected attendance request ${requestId}`);
-      alert('Attendance request rejected.');
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject_request',
+          requestId
+        }),
+      });
+
+      if (response.ok) {
+        setRequests(prev => 
+          prev.map(req => 
+            req.id === requestId 
+              ? { ...req, status: 'rejected' as const }
+              : req
+          )
+        );
+        alert('Attendance request rejected.');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to reject attendance: ${errorData.error}`);
+      }
     } catch (error) {
       console.error('Error rejecting attendance:', error);
       alert('Failed to reject attendance. Please try again.');

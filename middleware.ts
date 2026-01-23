@@ -3,18 +3,26 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   // Safety check (env vars)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  // Validate environment variables exist and URL is properly formatted
   if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    !supabaseUrl ||
+    !supabaseAnonKey ||
+    !supabaseUrl.startsWith('http') ||
+    supabaseUrl.includes('your_supabase_project_url_here') ||
+    supabaseAnonKey.includes('your_supabase_anon_key_here')
   ) {
+    console.warn('[Middleware] Supabase not configured properly. Skipping authentication checks.');
     return NextResponse.next();
   }
 
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
@@ -28,9 +36,36 @@ export async function middleware(request: NextRequest) {
   );
 
   // 🔑 Always fetch user first
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  let role: string | null = null;
+
+  try {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    user = authUser;
+
+    // Fetch role if user exists
+    if (user) {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("[Middleware] Role fetch error:", error.message);
+      }
+      role = data?.role ?? null;
+    }
+  } catch (error) {
+    console.error("[Middleware] Supabase error:", error);
+    // In development, allow access when Supabase fails
+    if (process.env.NODE_ENV === 'development') {
+      console.warn("[Middleware] Development mode: Allowing access without authentication");
+      return NextResponse.next();
+    }
+  }
 
   const pathname = request.nextUrl.pathname;
 
@@ -55,22 +90,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  /* ---------------- FETCH ROLE ---------------- */
-  let role: string | null = null;
-
-  if (user) {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (error) {
-      console.error("[Middleware] Role fetch error:", error.message);
-    }
-    role = data?.role ?? null;
-  }
-
   /* ---------------- LOGGED IN ON LOGIN PAGE ---------------- */
   if (
     user &&
@@ -81,6 +100,11 @@ export async function middleware(request: NextRequest) {
 
     if (role === "manager") {
       url.pathname = "/manager/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    if (role === "engineer") {
+      url.pathname = "/engineer";
       return NextResponse.redirect(url);
     }
 
@@ -95,6 +119,15 @@ export async function middleware(request: NextRequest) {
   /* ---------------- MANAGER ROUTE PROTECTION ---------------- */
   if (pathname.startsWith("/manager")) {
     if (role !== "manager") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/loginAdmin";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  /* ---------------- ENGINEER ROUTE PROTECTION ---------------- */
+  if (pathname.startsWith("/engineer")) {
+    if (role !== "engineer") {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/loginAdmin";
       return NextResponse.redirect(url);
@@ -128,6 +161,7 @@ export const config = {
   matcher: [
     "/auth/:path*",
     "/manager/:path*",
+    "/engineer/:path*",
     "/construction-worker/:path*",
     "/inventory/:path*",
     "/movements/:path*",

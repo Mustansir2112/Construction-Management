@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { supabase } from "@/lib/supabase-browser"
+import { createClient } from "@/lib/supabase-browser"
 import { Database } from "@/types/supabase"
 
 type InventoryInsert = Database['public']['Tables']['inventory']['Insert']
@@ -22,6 +22,7 @@ export default function AddInventoryForm() {
     setLoading(true)
     setError(null)
 
+    const supabase = createClient()
     const { error: insertError } = await supabase.from("inventory").insert(form)
 
     setLoading(false)

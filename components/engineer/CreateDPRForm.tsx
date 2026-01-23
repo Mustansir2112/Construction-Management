@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Image, Video, X, Mic, Loader2, CheckCircle2 } from "lucide-react";
 import VoiceRecorder from "@/components/dpr/VoiceRecorder";
+import { formatErrorForUser } from "@/lib/errorHandler";
 
 export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void }) {
   const [form, setForm] = useState({
