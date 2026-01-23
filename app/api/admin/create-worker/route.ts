@@ -1,10 +1,18 @@
 // app/api/admin/create-worker/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { Database } from "@/types/supabase";
 
-const supabaseAdmin = createClient(
+// Admin client (service role)
+const supabaseAdmin = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,   // 🔴 SECRET KEY
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
 );
 
 export async function GET(req: Request) {
@@ -46,8 +54,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, fullName, phone, password ,role} = body;
-    console.log(role,email,fullName,phone,password);
+    const { email, fullName, phone, password, role } = body;
+
+    console.log("INPUT:", email, fullName, phone, password, role);
+
     // Validate required fields
     if (!email || !fullName || !phone || !password) {
       return NextResponse.json(
@@ -56,7 +66,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Create auth user with the provided password
+    // Normalize role
+    let userRole = role || "worker";
+    if (userRole === "construction_worker") userRole = "worker";
+    if (!["worker", "engineer", "manager", "admin"].includes(userRole)) {
+      userRole = "worker";
+    }
+
+    // 1. CREATE AUTH USER
     const { data: authUser, error: authError } =
       await supabaseAdmin.auth.admin.createUser({
         email,
@@ -68,44 +85,15 @@ export async function POST(req: Request) {
         },
       });
 
+    console.log("AUTH RESULT:", authUser, "ERROR:", authError);
+
     if (authError) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
     const userId = authUser.user.id;
 
-    // Use the role from body, default to "worker" if not provided
-    // Map construction_worker to worker for consistency
-    // Also handle "engineer" role
-    let userRole = role || "worker";
-    if (userRole === "construction_worker") {
-      userRole = "worker";
-    }
-    // Ensure role is valid
-    if (!["worker", "engineer", "manager", "admin"].includes(userRole)) {
-      userRole = "worker";
-    }
-
-    // 2. Insert profile
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert({
-        id: userId,
-        email,
-        full_name: fullName,
-        phone,
-        role: userRole === "worker" ? "construction_worker" : userRole, // profiles table uses construction_worker
-      });
-
-    if (profileError) {
-      console.error("Profile insert error:", profileError);
-      return NextResponse.json(
-        { error: "Failed to create profile" },
-        { status: 400 }
-      );
-    }
-
-    // 3. Insert role (SOURCE OF TRUTH)
+    // 2. INSERT ROLE (SOURCE OF TRUTH)
     const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .insert({
@@ -113,22 +101,28 @@ export async function POST(req: Request) {
         role: userRole,
       });
 
+    console.log("ROLE INSERT ERROR:", roleError);
+
     if (roleError) {
-      console.error("Role insert error:", roleError);
+      // Rollback auth user
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+
       return NextResponse.json(
-        { error: "Failed to assign role" },
-        { status: 400 }
+        { error: roleError.message },
+        { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { success: true, userId, email },
+      { success: true, userId, email, role: userRole },
       { status: 201 }
     );
-  } catch (error) {
-    console.error("Error creating worker:", error);
+
+  } catch (error: any) {
+    console.error("🔥 FATAL ERROR:", error);
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error.message || "Internal server error" },
       { status: 500 }
     );
   }

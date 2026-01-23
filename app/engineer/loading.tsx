@@ -32,4 +32,14 @@ export default function Loading() {
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="space-y-4">
             <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
-            <div className="space
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

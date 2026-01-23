@@ -161,7 +161,7 @@ export default function AttendanceMarker({ isOnline }: AttendanceMarkerProps) {
         {attendanceMarked ? (
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <p className="text-green-700 font-medium">✓ Attendance Request Submitted!</p>
-            <p className="text-green-600 text-sm mt-1">Go to "Approve Attendance" tab to approve it</p>
+            <p className="text-green-600 text-sm mt-1">Go to {`"Approve Attendance"`} tab to approve it</p>
           </div>
         ) : (
           <Button 

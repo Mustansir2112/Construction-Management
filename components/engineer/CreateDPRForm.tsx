@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState,  useEffect } from "react";
 import { createClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Image, Video, X, Mic, Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import VoiceRecorder from "@/components/dpr/VoiceRecorder";
 import { formatErrorForUser } from "@/lib/errorHandler";
 
@@ -18,16 +18,11 @@ export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void })
     issues: "",
   });
   const [voiceText, setVoiceText] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]);
-  const [videos, setVideos] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [loadingProject, setLoadingProject] = useState(true);
-  
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-assign project from worker assignment
   useEffect(() => {
@@ -42,14 +37,14 @@ export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void })
 
       // Get worker's assigned project
       const { data: assignment } = await supabase
-        .from("project_assignments")
+        .from("project_assignments" as any)
         .select("project_id")
         .eq("user_id", user.id)
         .limit(1)
         .single();
 
-      if (assignment) {
-        setProjectId(assignment.project_id);
+      if (assignment && "project_id" in assignment) {
+        setProjectId(assignment.project_id as string);
       }
       setLoadingProject(false);
     }
@@ -73,86 +68,6 @@ export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void })
     }));
   }
 
-  function handleFileSelect(
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "photo" | "video"
-  ) {
-    const files = Array.from(e.target.files || []);
-    const maxSize = 30 * 1024 * 1024; // 30MB
-
-    files.forEach((file) => {
-      if (file.size > maxSize) {
-        alert(`${file.name} is too large. Maximum size is 30MB.`);
-        return;
-      }
-
-      if (type === "photo" && file.type.startsWith("image/")) {
-        setPhotos((prev) => [...prev, file]);
-      } else if (type === "video" && file.type.startsWith("video/")) {
-        setVideos((prev) => [...prev, file]);
-      } else {
-        alert(`${file.name} is not a valid ${type} file.`);
-      }
-    });
-  }
-
-  function removeFile(index: number, type: "photo" | "video") {
-    if (type === "photo") {
-      setPhotos((prev) => prev.filter((_, i) => i !== index));
-    } else {
-      setVideos((prev) => prev.filter((_, i) => i !== index));
-    }
-  }
-
-  async function uploadFiles(): Promise<{ photos: string[]; videos: string[] }> {
-    const supabase = createClient();
-    const photoUrls: string[] = [];
-    const videoUrls: string[] = [];
-
-    // Upload photos to dpr bucket
-    for (const photo of photos) {
-      const fileName = `photos/${Date.now()}-${Math.random().toString(36).substring(7)}-${photo.name}`;
-      const { data, error } = await supabase.storage
-        .from("dpr")
-        .upload(fileName, photo, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        console.error("Error uploading photo:", error);
-        continue;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from("dpr")
-        .getPublicUrl(fileName);
-      photoUrls.push(urlData.publicUrl);
-    }
-
-    // Upload videos to dpr bucket
-    for (const video of videos) {
-      const fileName = `videos/${Date.now()}-${Math.random().toString(36).substring(7)}-${video.name}`;
-      const { data, error } = await supabase.storage
-        .from("dpr")
-        .upload(fileName, video, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        console.error("Error uploading video:", error);
-        continue;
-      }
-
-      const { data: urlData } = supabase.storage
-        .from("dpr")
-        .getPublicUrl(fileName);
-      videoUrls.push(urlData.publicUrl);
-    }
-
-    return { photos: photoUrls, videos: videoUrls };
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -172,24 +87,18 @@ export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void })
         throw new Error("Work done is required");
       }
 
-      // Upload media files
-      const { photos: photoUrls, videos: videoUrls } = await uploadFiles();
-
-      // Create DPR
+      // Create DPR record in 'dprs' database table
       const dprData = {
         project_id: projectId,
         date: form.date,
-        work_done: form.work_done,
+        work_done: form.work_done.trim(),
         labor_count: form.labor_count || 0,
-        materials_used: form.materials_used || null,
-        issues: form.issues || null,
-        photos: photoUrls,
-        videos: videoUrls,
-        full_text: form.work_done,
-        short_summary: summarizeText(form.work_done),
+        materials_used: form.materials_used?.trim() || null,
+        issues: form.issues?.trim() || null,
         created_by: user.id,
       };
 
+      // Insert into dprs database table
       const response = await fetch("/api/dprs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -203,6 +112,31 @@ export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void })
 
       setSuccess(true);
       
+      // Generate and download PDF
+      try {
+        const pdfResponse = await fetch("/api/dprs/pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dprData),
+        });
+
+        if (pdfResponse.ok) {
+          const blob = await pdfResponse.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          const dateStr = form.date.replace(/-/g, "");
+          link.download = `DPR-${dateStr}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      } catch (pdfError) {
+        console.error("Error generating PDF:", pdfError);
+        // Don't throw - PDF generation failure shouldn't prevent DPR creation
+      }
+      
       // Reset form
       setForm({
         date: new Date().toISOString().split("T")[0],
@@ -212,8 +146,6 @@ export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void })
         issues: "",
       });
       setVoiceText("");
-      setPhotos([]);
-      setVideos([]);
 
       if (onSuccess) {
         setTimeout(() => {
@@ -321,94 +253,6 @@ export default function CreateDPRForm({ onSuccess }: { onSuccess?: () => void })
           placeholder="Any issues or concerns..."
           className="mt-1 w-full border rounded px-3 py-2 h-20 text-sm"
         />
-      </div>
-
-      {/* Photo Upload */}
-      <div>
-        <Label>Photos (Max 30MB each)</Label>
-        <input
-          ref={photoInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => handleFileSelect(e, "photo")}
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => photoInputRef.current?.click()}
-          className="w-full mt-2"
-        >
-          <Image className="w-4 h-4 mr-2" />
-          Add Photos
-        </Button>
-        {photos.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {photos.map((photo, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"
-              >
-                <span className="truncate flex-1">
-                  {photo.name} ({(photo.size / 1024 / 1024).toFixed(2)} MB)
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeFile(index, "photo")}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Video Upload */}
-      <div>
-        <Label>Videos (Max 30MB each)</Label>
-        <input
-          ref={videoInputRef}
-          type="file"
-          accept="video/*"
-          multiple
-          onChange={(e) => handleFileSelect(e, "video")}
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => videoInputRef.current?.click()}
-          className="w-full mt-2"
-        >
-          <Video className="w-4 h-4 mr-2" />
-          Add Videos
-        </Button>
-        {videos.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {videos.map((video, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-2 bg-slate-50 rounded text-sm"
-              >
-                <span className="truncate flex-1">
-                  {video.name} ({(video.size / 1024 / 1024).toFixed(2)} MB)
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeFile(index, "video")}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Error */}
