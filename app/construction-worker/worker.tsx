@@ -7,11 +7,11 @@ import { getUserRole } from "@/lib/roleGuard";
 import { Package, Move, ClipboardList, Clock, TrendingUp } from "lucide-react";
 
 // Lazy load components for better performance
-const InventoryCard = lazy(() => import("@/components/worker/InventoryCard"));
-const MovementsCard = lazy(() => import("@/components/worker/MovementsCard"));
-const DPRsCard = lazy(() => import("@/components/worker/DPRsCard"));
-const TasksCard = lazy(() => import("@/components/worker/TasksCard"));
-import CreateDPRForm from "@/components/worker/CreateDPRForm";
+const InventoryCard = lazy(() => import("@/components/engineer/InventoryCard"));
+const MovementsCard = lazy(() => import("@/components/engineer/MovementsCard"));
+const DPRsCard = lazy(() => import("@/components/engineer/DPRsCard"));
+const TasksCard = lazy(() => import("@/components/engineer/TasksCard"));
+import CreateDPRForm from "@/components/engineer/CreateDPRForm";
 
 interface Stats {
   inventoryItems: number;
@@ -92,7 +92,7 @@ export default function ConstructionWorkerDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="flex min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
       <ResponsiveSidebar />
       
       <main className="flex-1 p-4 md:p-6 lg:p-8 lg:ml-64">
