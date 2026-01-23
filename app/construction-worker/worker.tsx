@@ -7,11 +7,11 @@ import { getUserRole } from "@/lib/roleGuard";
 import { Package, Move, ClipboardList, Clock, TrendingUp } from "lucide-react";
 
 // Lazy load components for better performance
-const InventoryCard = lazy(() => import("@/components/worker/InventoryCard"));
-const MovementsCard = lazy(() => import("@/components/worker/MovementsCard"));
-const DPRsCard = lazy(() => import("@/components/worker/DPRsCard"));
-const TasksCard = lazy(() => import("@/components/worker/TasksCard"));
-import CreateDPRForm from "@/components/worker/CreateDPRForm";
+const InventoryCard = lazy(() => import("@/components/engineer/InventoryCard"));
+const MovementsCard = lazy(() => import("@/components/engineer/MovementsCard"));
+const DPRsCard = lazy(() => import("@/components/engineer/DPRsCard"));
+const TasksCard = lazy(() => import("@/components/engineer/TasksCard"));
+import CreateDPRForm from "@/components/engineer/CreateDPRForm";
 
 interface Stats {
   inventoryItems: number;
