@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     }
   }
 
+  // Insert DPR data - only include columns that exist in the schema
   const { error } = await supabase.from("dprs").insert({
     project_id: projectId || null,
     date: body.date,
@@ -34,10 +35,6 @@ export async function POST(req: Request) {
     labor_count: body.labor_count || 0,
     materials_used: body.materials_used || null,
     issues: body.issues || null,
-    photos: body.photos || [],
-    videos: body.videos || [],
-    full_text: body.full_text || body.work_done,
-    short_summary: body.short_summary || body.work_done,
     created_by: body.created_by || user.id,
   })
 

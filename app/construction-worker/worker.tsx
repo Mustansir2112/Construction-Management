@@ -156,24 +156,6 @@ export default function ConstructionWorkerDashboard() {
           </details>
         </div>
 
-        {/* Create DPR Section - Collapsible */}
-        <div className="mb-6">
-          <details className="bg-white rounded-xl shadow-md p-4">
-            <summary className="cursor-pointer font-semibold text-lg text-slate-900 flex items-center gap-2 list-none">
-              <ClipboardList className="w-5 h-5" />
-              <span>Create Daily Progress Report</span>
-            </summary>
-            <div className="mt-4">
-              <CreateDPRForm onSuccess={() => {
-                fetchStats();
-                // Close details after success
-                const details = document.querySelector('details');
-                if (details) details.removeAttribute('open');
-              }} />
-            </div>
-          </details>
-        </div>
-
         {/* Main Content Grid with lazy loading */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Suspense
