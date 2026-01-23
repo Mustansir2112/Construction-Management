@@ -10,10 +10,21 @@ export async function GET(req: Request) {
 
   try {
     if (type === "requests") {
-      // Get attendance requests
+      // Get attendance requests with proper field mapping
       let query = supabase
         .from("attendance_requests")
-        .select("*")
+        .select(`
+          id,
+          worker_id,
+          worker_name,
+          worker_email,
+          request_date,
+          request_time,
+          location_lat,
+          location_lng,
+          is_within_zone,
+          status
+        `)
         .order("request_time", { ascending: false });
 
       if (date) {
@@ -23,10 +34,25 @@ export async function GET(req: Request) {
       const { data, error } = await query;
 
       if (error) {
+        console.error("Error fetching attendance requests:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      return NextResponse.json(data || []);
+      // Transform the data to match the expected format
+      const transformedData = (data || []).map(request => ({
+        id: request.id,
+        worker_id: request.worker_id,
+        worker_name: request.worker_name,
+        worker_email: request.worker_email,
+        request_date: request.request_date,
+        request_time: request.request_time ? new Date(request.request_time).toTimeString().slice(0, 8) : new Date().toTimeString().slice(0, 8),
+        location_lat: request.location_lat,
+        location_lng: request.location_lng,
+        is_within_zone: request.is_within_zone,
+        status: request.status
+      }));
+
+      return NextResponse.json(transformedData);
     } else if (type === "daily") {
       // Get daily attendance
       let query = supabase

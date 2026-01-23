@@ -3,7 +3,6 @@
 import { Suspense, lazy, useState, useEffect } from "react";
 import { ResponsiveSidebar } from "@/components/ResponsiveSidebar";
 import { createClient } from "@/lib/supabase-browser";
-import { getUserRole } from "@/lib/roleGuard";
 import { Package, Move, ClipboardList, Clock, TrendingUp, UserCheck, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -15,8 +14,8 @@ const TasksCard = lazy(() => import("@/components/engineer/TasksCard"));
 import CreateDPRForm from "@/components/engineer/CreateDPRForm";
 
 // Attendance components
-import AttendanceMarker from "@/components/worker/attendance-marker";
-import OnlineStatusWarning from "@/components/worker/online-status-warning";
+import AttendanceMarker from "@/components/workers/attendance-marker";
+import OnlineStatusWarning from "@/components/workers/online-status-warning";
 import MarkAttendanceRequests from "@/components/engineer/MarkAttendanceRequests";
 import MarkAttendanceWithoutInternet from "@/components/engineer/MarkAttendanceWithoutInternet";
 
@@ -40,52 +39,41 @@ export default function ConstructionWorkerDashboard() {
   const [activeAttendanceTab, setActiveAttendanceTab] = useState<'requests' | 'manual'>('requests');
 
   useEffect(() => {
-    async function initialize() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const userRole = await getUserRole(user.id);
-        setRole(userRole);
-      }
-
-      await fetchStats();
-      setLoading(false);
-    }
-
-    initialize();
+    // Simple initialization without auth blocking
+    fetchStats();
   }, []);
 
   async function fetchStats() {
-    const supabase = createClient();
-    
     try {
-      // Fetch inventory count
-      const { count: inventoryCount } = await supabase
-        .from("inventory")
-        .select("*", { count: "exact", head: true });
-
-      // Fetch pending movements
-      const { count: movementsCount } = await supabase
-        .from("movements")
-        .select("*", { count: "exact", head: true })
-        .eq("approved", false);
-
-      // Fetch today's DPRs from database table, not storage
+      setLoading(true);
+      
+      // Use Promise.all for parallel execution
       const today = new Date().toISOString().split("T")[0];
-      const { count: dprsCount } = await (supabase
-        .from("dprs" as any)
-        .select("*", { count: "exact", head: true })
-        .gte("date", today));
+      const supabase = createClient();
+      
+      const [inventoryResult, movementsResult, dprsResult] = await Promise.all([
+        supabase.from("inventory").select("*", { count: "exact", head: true }),
+        supabase.from("movements").select("*", { count: "exact", head: true }).eq("approved", false),
+        supabase.from("dprs" as any).select("*", { count: "exact", head: true }).gte("date", today)
+      ]);
 
       setStats({
-        inventoryItems: inventoryCount || 0,
-        pendingMovements: movementsCount || 0,
-        todayDPRs: dprsCount || 0,
+        inventoryItems: inventoryResult.count || 0,
+        pendingMovements: movementsResult.count || 0,
+        todayDPRs: dprsResult.count || 0,
         activeTasks: 0, // TODO: Add tasks count
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
+      // Set default values on error
+      setStats({
+        inventoryItems: 0,
+        pendingMovements: 0,
+        todayDPRs: 0,
+        activeTasks: 0,
+      });
+    } finally {
+      setLoading(false);
     }
   }
 

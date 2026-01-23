@@ -7,7 +7,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { createClient } from "@/lib/supabase-browser";
-import { getUserRole } from "@/lib/roleGuard";
 
 interface MenuItem {
   icon: any;
@@ -70,17 +69,46 @@ export function ResponsiveSidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Fetch user role on component mount
   useEffect(() => {
-    async function fetchRole() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const userRole = await getUserRole(user.id);
-        setRole(userRole);
+    async function fetchUserRole() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // Try to get role from user_roles table
+          const { data: roleData, error } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+
+          if (roleData && !error) {
+            setRole(roleData.role);
+          } else {
+            // Fallback: try profiles table
+            const { data: profileData } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", user.id)
+              .single();
+            
+            if (profileData) {
+              setRole(profileData.role);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+        // Default to worker if role fetch fails
+        setRole("worker");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-    fetchRole();
+
+    fetchUserRole();
   }, []);
 
   const handleLogout = async () => {
@@ -95,7 +123,7 @@ export function ResponsiveSidebar() {
 
   // Filter menu items based on role
   const menuItems = allMenuItems.filter(item => {
-    if (!item.roles) return true;
+    if (!item.roles || !role) return true;
     // Check if user's role matches any allowed role
     return item.roles.includes(role) || 
            item.roles.includes("construction_worker") && role === "worker" ||
@@ -169,7 +197,7 @@ export function ResponsiveSidebar() {
             {/* Role Badge */}
             <div className="mb-4 px-2">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                Role: <strong className="capitalize">{role}</strong>
+                Role: <strong className="capitalize">{role || 'Loading...'}</strong>
               </span>
             </div>
 

@@ -1,8 +1,10 @@
-import { supabase } from "@/lib/supabase-browser"
+import { createClient } from "@/lib/supabase-browser"
 
 export type UserRole = "worker" | "manager" | "admin" | "engineer" | "construction_worker"
 
 export async function getUserRole(userId: string): Promise<UserRole> {
+  const supabase = createClient();
+  
   // Use user_roles table as the source of truth (same as middleware)
   const { data, error } = await supabase
     .from("user_roles")

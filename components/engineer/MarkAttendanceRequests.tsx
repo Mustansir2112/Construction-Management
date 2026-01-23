@@ -29,12 +29,17 @@ export default function MarkAttendanceRequests() {
       if (!mounted) return;
       
       try {
+        console.log('Fetching attendance requests...');
         const response = await fetch('/api/attendance?type=requests');
+        console.log('Response status:', response.status);
+        
         if (response.ok && mounted) {
           const data = await response.json();
+          console.log('Fetched attendance requests:', data);
           setRequests(data);
         } else if (mounted) {
-          console.error('Failed to fetch attendance requests');
+          const errorText = await response.text();
+          console.error('Failed to fetch attendance requests:', response.status, errorText);
         }
       } catch (error) {
         if (mounted) {
@@ -53,6 +58,28 @@ export default function MarkAttendanceRequests() {
       mounted = false;
     };
   }, []);
+
+  const refreshRequests = async () => {
+    setLoading(true);
+    try {
+      console.log('Refreshing attendance requests...');
+      const response = await fetch('/api/attendance?type=requests');
+      console.log('Refresh response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Refreshed attendance requests:', data);
+        setRequests(data);
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to refresh attendance requests:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('Error refreshing attendance requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApproveRequest = async (requestId: string, workerId: string, isWithinZone: boolean) => {
     if (!isWithinZone) {
@@ -154,15 +181,39 @@ export default function MarkAttendanceRequests() {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Attendance Requests</span>
-          <span className="text-sm font-normal bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-            {pendingRequests.length} pending
-          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={refreshRequests}
+              disabled={loading}
+              size="sm"
+              variant="outline"
+            >
+              {loading ? 'Loading...' : 'Refresh'}
+            </Button>
+            <span className="text-sm font-normal bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              {pendingRequests.length} pending
+            </span>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+          <strong>Debug Info:</strong> Total requests: {requests.length}, Pending: {pendingRequests.length}
+          {requests.length > 0 && (
+            <div className="mt-1">
+              Latest request: {JSON.stringify(requests[0], null, 2)}
+            </div>
+          )}
+        </div>
+        
         {pendingRequests.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500">No pending attendance requests</p>
+            {requests.length > 0 && (
+              <p className="text-xs text-gray-400 mt-2">
+                ({requests.length} total requests found, but none are pending)
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

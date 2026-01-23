@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import InstallPWAButton from "@/components/InstallPWAButton"
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 
 const geistSans = Geist({
@@ -33,8 +34,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <InstallPWAButton />
-        {children}
+        <ErrorBoundary>
+          <InstallPWAButton />
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 "use client"
 
-import { ResponsiveSidebar } from "@/components/ResponsiveSidebar"
+import { Sidebar } from "@/components/manager/sidebar"
 import { EnhancedDPR } from "@/components/EnhancedDPR"
 import { KanbanBoardIntegrated } from "@/components/manager/KanbanBoardIntegrated"
 import { AttendanceListIntegrated } from "@/components/manager/AttendanceListIntegrated"
@@ -8,7 +8,7 @@ import { AttendanceListIntegrated } from "@/components/manager/AttendanceListInt
 export default function ManagerDashboardPage() {
   return (
     <div className="flex min-h-screen bg-background">
-      <ResponsiveSidebar />
+      <Sidebar />
 
       <main className="flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
         <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">

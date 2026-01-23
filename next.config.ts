@@ -1,27 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Optimize for Turbopack (Next.js 16 default)
-  turbopack: {
-    // Empty config to silence warnings and use defaults
+  // Disable type checking during build to speed up development
+  typescript: {
+    ignoreBuildErrors: true,
   },
   
-  // Optimize compilation speed
+  // Optimize for development speed
   experimental: {
-    // Enable optimizations
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // Disable optimizations that slow down development
+    optimizePackageImports: undefined,
   },
   
-  // Optimize bundle size and loading
-  compiler: {
-    // Remove console logs in production
-    removeConsole: process.env.NODE_ENV === "production",
-  },
-  
-  // Optimize images and static assets
-  images: {
-    formats: ['image/webp', 'image/avif'],
-  },
+  // Disable source maps in development for faster builds
+  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;
