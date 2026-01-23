@@ -63,9 +63,6 @@ export default function AttendanceMarker({ isOnline }: AttendanceMarkerProps) {
       },
       (error) => {
         console.error('Error getting location:', error);
-        // For demo purposes, allow attendance marking even without location
-        setLocation({ lat: SITE_LOCATION.lat, lng: SITE_LOCATION.lng });
-        setIsNearSite(true);
         setIsLoading(false);
       }
     );
